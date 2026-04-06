@@ -61,9 +61,9 @@ Sửa `.env` và điền key thật:
 | `DEFAULT_PROVIDER` | `google` |
 | `DEFAULT_MODEL` | ví dụ `gemini-1.5-flash` |
 | `OPENWEATHER_API_KEY` | [OpenWeatherMap](https://openweathermap.org/api) — chi tiết bước lấy key & lỗi 401: **`docs/OPENWEATHER_SETUP_VI.md`** |
-| `AMADEUS_CLIENT_ID` | [Amadeus Developers](https://developers.amadeus.com/) — app **Test** |
-| `AMADEUS_CLIENT_SECRET` | cặp với Client ID |
-| `DEMO_TRAVEL_APIS` | `1` = thiếu OpenWeather/Amadeus thì dùng dữ liệu mẫu; `0` + đủ key = API thật |
+| `DUFFEL_ACCESS_TOKEN` | [Duffel API](https://duffel.com/docs/api/overview) |
+| `DUFFEL_API_VERSION` | tùy chọn, mặc định `v2` |
+| `DEMO_TRAVEL_APIS` | `1` = thiếu OpenWeather/Duffel thì dùng dữ liệu mẫu; `0` + đủ key = API thật |
 | `AGENT_MAX_STEPS` | mặc định `8` |
 
 **Không** đưa `.env` lên GitHub.
@@ -81,7 +81,7 @@ python -m streamlit run app.py
 
 Dùng `python -m streamlit` thay vì gõ `streamlit` trần để trùng với đúng bản Python đã cài package (tránh lỗi `No module named 'google.generativeai'`).
 
-Trình duyệt mở `http://localhost:8501` — **3 tab:** chạy thử (câu hỏi mẫu từ `data/preset_questions.json` + tự nhập), xuất CSV / feedback, liên kết rubric & API. Sau mỗi lần chạy có thể **tự động cập nhật** `report/exports/*.csv`. Mỗi bước trace có **trích dẫn nguồn** (OpenWeather, Amadeus, demo, file log).
+Trình duyệt mở `http://localhost:8501` — **3 tab:** chạy thử (câu hỏi mẫu từ `data/preset_questions.json` + tự nhập), xuất CSV / feedback, liên kết rubric & API. Sau mỗi lần chạy có thể **tự động cập nhật** `report/exports/*.csv`. Mỗi bước trace có **trích dẫn nguồn** (OpenWeather, Duffel, demo, file log).
 
 ### Dòng lệnh (CLI)
 
@@ -117,7 +117,7 @@ python -m pytest tests/test_travel_tools.py -v
 | `src/chatbot.py` | Chatbot baseline |
 | `src/core/provider_factory.py` | Chọn Gemini / OpenAI / local từ `.env` |
 | `src/tools/weather.py` | OpenWeather |
-| `src/tools/flights.py` | Amadeus (sandbox) |
+| `src/tools/flights.py` | Duffel Air API |
 | `src/tools/budget.py` | Tính ngân sách chuyến đi |
 | `src/tools/registry.py` | Danh sách tool + `execute_tool` |
 | `report/NOP_BAI_CHECKLIST.md` | Checklist nộp bài khớp rubric |
@@ -157,4 +157,4 @@ Chi tiết: `report/NOP_BAI_CHECKLIST.md`, `report/VIEC_CAN_LAM.md`, `SCORING.md
 
 ---
 
-*Nếu `search_flights` không trả offer: sandbox Amadeus phụ thuộc ngày/route — thử đổi ngày trong câu hỏi `-q`.*
+*Nếu `search_flights` không trả offer: thử đổi ngày/route hoặc kiểm tra hạn mức tài khoản Duffel.*

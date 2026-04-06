@@ -1,63 +1,49 @@
 import json
 import os
-import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List
 
 import requests
 
 from src.tools.demo_fallback import demo_travel_apis_enabled, mock_flights
 
-AMADEUS_TOKEN_URL = "https://test.api.amadeus.com/v1/security/oauth2/token"
-AMADEUS_OFFERS_URL = "https://test.api.amadeus.com/v2/shopping/flight-offers"
-
-_token: Optional[str] = None
-_token_expires_at: float = 0.0
+DUFFEL_OFFER_REQUEST_URL = "https://api.duffel.com/air/offer_requests"
+DUFFEL_VERSION = os.getenv("DUFFEL_API_VERSION", "v2")
 
 
-def _amadeus_credentials() -> Tuple[str, str]:
-    cid = os.getenv("AMADEUS_CLIENT_ID", "").strip()
-    secret = os.getenv("AMADEUS_CLIENT_SECRET", "").strip()
-    return cid, secret
+def _duffel_token() -> str:
+    return os.getenv("DUFFEL_ACCESS_TOKEN", "").strip()
 
 
-def _get_amadeus_token() -> str:
-    global _token, _token_expires_at
-    cid, secret = _amadeus_credentials()
-    if not cid or not secret:
-        raise ValueError("AMADEUS_CLIENT_ID / AMADEUS_CLIENT_SECRET missing")
+def _extract_duffel_offers(body: Dict[str, Any]) -> List[Dict[str, Any]]:
+    data = body.get("data") or {}
+    offers = data.get("offers")
+    if isinstance(offers, list):
+        return offers
 
-    now = time.time()
-    if _token and now < _token_expires_at - 60:
-        return _token
+    included = body.get("included") or []
+    if isinstance(included, list):
+        return [x for x in included if isinstance(x, dict) and x.get("type") == "offer"]
+    return []
 
-    r = requests.post(
-        AMADEUS_TOKEN_URL,
-        data={
-            "grant_type": "client_credentials",
-            "client_id": cid,
-            "client_secret": secret,
-        },
-        timeout=20,
-    )
-    r.raise_for_status()
-    data = r.json()
-    _token = data["access_token"]
-    _token_expires_at = now + int(data.get("expires_in", 1700))
-    return _token
+
+def _offer_request_resource_url(offer_request_id: Any) -> str:
+    if isinstance(offer_request_id, str) and offer_request_id.strip():
+        return f"{DUFFEL_OFFER_REQUEST_URL}/{offer_request_id.strip()}"
+    return ""
 
 
 def search_flights(origin: str, destination: str, departure_date: str) -> str:
     """
-    Amadeus Test API: IATA codes (e.g. HAN, DAD, SGN), departure_date YYYY-MM-DD.
-    Sandbox returns sample offers; dates must be in the future per Amadeus rules.
+    Duffel Air API: IATA codes (e.g. HAN, DAD, SGN), departure_date YYYY-MM-DD.
     """
-    if not _amadeus_credentials()[0]:
+    token = _duffel_token()
+    if not token:
         if demo_travel_apis_enabled():
             return mock_flights(origin, destination, departure_date)
         return json.dumps(
             {
-                "error": "Missing AMADEUS_CLIENT_ID / AMADEUS_CLIENT_SECRET",
-                "hint": "https://developers.amadeus.com/ (app Test) — hoặc DEMO_TRAVEL_APIS=1 trong .env để demo không cần Amadeus.",
+                "error": "Missing DUFFEL_ACCESS_TOKEN",
+                "hint": "https://duffel.com/docs/api/overview — hoặc DEMO_TRAVEL_APIS=1 trong .env để demo không cần Duffel.",
             },
             ensure_ascii=False,
         )
@@ -66,63 +52,86 @@ def search_flights(origin: str, destination: str, departure_date: str) -> str:
     destination = destination.strip().upper()
     departure_date = departure_date.strip()
 
-    try:
-        token = _get_amadeus_token()
-    except Exception as e:
-        return json.dumps({"error": "Amadeus auth failed", "detail": str(e)}, ensure_ascii=False)
-
-    headers = {"Authorization": f"Bearer {token}"}
-    params: Dict[str, Any] = {
-        "originLocationCode": origin,
-        "destinationLocationCode": destination,
-        "departureDate": departure_date,
-        "adults": 1,
-        "max": 5,
-        "currencyCode": "VND",
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Duffel-Version": DUFFEL_VERSION,
+        "Content-Type": "application/json",
+    }
+    payload: Dict[str, Any] = {
+        "data": {
+            "slices": [
+                {
+                    "origin": origin,
+                    "destination": destination,
+                    "departure_date": departure_date,
+                }
+            ],
+            "passengers": [{"type": "adult"}],
+            "cabin_class": "economy",
+            "max_connections": 1,
+        }
     }
 
     try:
-        r = requests.get(AMADEUS_OFFERS_URL, headers=headers, params=params, timeout=25)
+        r = requests.post(DUFFEL_OFFER_REQUEST_URL, headers=headers, json=payload, timeout=30)
         if r.status_code >= 400:
             return json.dumps(
                 {
-                    "error": "Amadeus flight search failed",
+                    "error": "Duffel flight search failed",
                     "status": r.status_code,
-                    "body": r.text[:2000],
+                    "body": r.text[:3000],
                 },
                 ensure_ascii=False,
             )
-        data = r.json()
+        body = r.json()
     except requests.RequestException as e:
-        return json.dumps({"error": "Amadeus request failed", "detail": str(e)}, ensure_ascii=False)
+        return json.dumps({"error": "Duffel request failed", "detail": str(e)}, ensure_ascii=False)
+    except ValueError:
+        return json.dumps({"error": "Duffel response is not valid JSON", "body": r.text[:1000]}, ensure_ascii=False)
 
+    raw_offers = _extract_duffel_offers(body)
     offers = []
-    for item in data.get("data", [])[:5]:
-        price = (item.get("price") or {}).get("grandTotal") or (item.get("price") or {}).get("total")
-        currency = (item.get("price") or {}).get("currency", "VND")
-        itineraries = item.get("itineraries") or []
-        first = itineraries[0] if itineraries else {}
-        segs = first.get("segments") or []
+    for item in raw_offers[:5]:
+        slices = item.get("slices") or []
+        first_slice = slices[0] if slices else {}
+        segs = first_slice.get("segments") or []
         first_seg = segs[0] if segs else {}
         last_seg = segs[-1] if segs else {}
         offers.append(
             {
-                "price": price,
-                "currency": currency,
-                "departure_at": first_seg.get("departure", {}).get("at"),
-                "arrival_at": last_seg.get("arrival", {}).get("at"),
-                "carrier_code": (first_seg.get("carrierCode") or ""),
+                "price": item.get("total_amount"),
+                "currency": item.get("total_currency", "VND"),
+                "departure_at": (first_seg.get("departing_at") if isinstance(first_seg, dict) else None),
+                "arrival_at": (last_seg.get("arriving_at") if isinstance(last_seg, dict) else None),
+                "carrier_code": (
+                    (first_seg.get("marketing_carrier") or {}).get("iata_code")
+                    if isinstance(first_seg, dict)
+                    else ""
+                ),
                 "number_of_stops": max(0, len(segs) - 1),
             }
         )
 
+    offer_request_id = (body.get("data") or {}).get("id")
+    resource_url = _offer_request_resource_url(offer_request_id)
+
     if not offers:
         return json.dumps(
             {
-                "message": "No offers returned (common in sandbox for some routes/dates).",
-                "raw_dictionaries": bool(data.get("dictionaries")),
+                "message": "No offers returned for this route/date.",
+                "duffel_offer_request_id": offer_request_id,
+                "duffel_offer_request_url": resource_url or None,
+                "source": "duffel",
             },
             ensure_ascii=False,
         )
 
-    return json.dumps({"offers": offers, "source": "amadeus_test"}, ensure_ascii=False)
+    return json.dumps(
+        {
+            "offers": offers,
+            "duffel_offer_request_id": offer_request_id,
+            "duffel_offer_request_url": resource_url or None,
+            "source": "duffel",
+        },
+        ensure_ascii=False,
+    )

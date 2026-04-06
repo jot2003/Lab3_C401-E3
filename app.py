@@ -113,9 +113,18 @@ def observation_citation_markdown(tool: str, obs_raw: str) -> str:
             "**Nguon:** [OpenWeatherMap](https://openweathermap.org/api) — xem `src/tools/weather.py`."
         )
     if tool == "search_flights":
+        req_id = d.get("duffel_offer_request_id")
+        req_url = d.get("duffel_offer_request_url")
+        req_info = f" (offer_request_id: `{req_id}`)" if req_id else ""
+        realtime = (
+            f"[Du lieu realtime cua lan tim nay]({req_url}) (can `Authorization: Bearer ...` de xem JSON)"
+            if req_url
+            else "Khong co `offer_request_id`, nen khong tao duoc link tai nguyen realtime."
+        )
         return (
-            "**Nguon:** [Amadeus Self-Service — Flight Offers Search](https://developers.amadeus.com/self-service), "
-            "Test API trong `src/tools/flights.py`."
+            f"**Nguon:** {realtime}{req_info}. "
+            "[Tai lieu endpoint tao offer request](https://duffel.com/docs/api/offer-requests/create-offer-request). "
+            "Chi tiet goi API trong `src/tools/flights.py`."
         )
     if tool == "calculate_travel_budget":
         return "**Nguon:** Tinh toan cuc bo (Python), khong goi API ngoai — `src/tools/budget.py`."
@@ -375,7 +384,7 @@ def main() -> None:
 
 - [Gemini API / Rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)
 - [OpenWeatherMap API](https://openweathermap.org/api)
-- [Amadeus for Developers](https://developers.amadeus.com/)
+- [Duffel API](https://duffel.com/docs/api/overview)
 
 ### Trong repo (ma nguon)
 

@@ -61,7 +61,7 @@ def mock_flights(origin: str, destination: str, departure_date: str) -> str:
     departure_date = (departure_date or "").strip()
     out = {
         "_demo": True,
-        "message": "Giá vé mẫu (không phải API Amadeus). Đặt OPENWEATHER + Amadeus trong .env để dùng dữ liệu thật.",
+        "message": "Giá vé mẫu (không phải API Duffel). Đặt OPENWEATHER + DUFFEL trong .env để dùng dữ liệu thật.",
         "offers": [
             {
                 "price": "1250000",

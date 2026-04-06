@@ -41,7 +41,17 @@ def test_search_flights_keyword_style():
         "origin=HAN, destination=DAD, departure_date=2026-04-20",
     )
     data = json.loads(raw)
-    assert "error" not in data or "Amadeus" in data.get("error", "")
+    assert "error" not in data or "Duffel" in data.get("error", "")
+
+
+def test_search_flights_single_quoted_keyword_style():
+    raw = execute_tool(
+        "search_flights",
+        "origin='HAN', destination='DAD', departure_date='2026-04-20'",
+    )
+    data = json.loads(raw)
+    # Quan trong: parser phai bo dau nhay don, khong duoc loi expected args.
+    assert "expected 3 args" not in data.get("error", "")
 
 
 def test_unknown_tool():

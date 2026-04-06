@@ -50,7 +50,7 @@ def main() -> None:
         return
 
     agent = ReActAgent(llm, get_tool_specs(), max_steps=int(os.getenv("AGENT_MAX_STEPS", "8")))
-    print("=== Mode: AGENT (ReAct + OpenWeather + Amadeus + budget) ===\n")
+    print("=== Mode: AGENT (ReAct + OpenWeather + Duffel + budget) ===\n")
     print(agent.run(question))
 
 

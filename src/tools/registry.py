@@ -33,9 +33,9 @@ def get_tool_specs() -> List[Dict[str, Any]]:
         {
             "name": "search_flights",
             "description": (
-                "Tìm vé máy bay (Amadeus TEST API). "
+                "Tìm vé máy bay (Duffel Air API). "
                 "origin, destination: mã IATA 3 chữ (HAN, DAD, SGN). "
-                "departure_date: YYYY-MM-DD (ngày trong tương lai, theo quy tắc sandbox)."
+                "departure_date: YYYY-MM-DD (nên là ngày trong tương lai)."
             ),
             "args": ["origin", "destination", "departure_date"],
         },
@@ -52,15 +52,18 @@ def get_tool_specs() -> List[Dict[str, Any]]:
 
 
 def _split_args(arg_string: str) -> List[str]:
-    """Split top-level commas; respect double-quoted segments."""
+    """Split top-level commas; respect quoted segments (' or ")."""
     parts: List[str] = []
     buf: List[str] = []
-    in_quotes = False
+    quote_char: Optional[str] = None
     for ch in arg_string:
-        if ch == '"':
-            in_quotes = not in_quotes
+        if ch in ('"', "'"):
+            if quote_char is None:
+                quote_char = ch
+            elif quote_char == ch:
+                quote_char = None
             buf.append(ch)
-        elif ch == "," and not in_quotes:
+        elif ch == "," and quote_char is None:
             parts.append("".join(buf).strip())
             buf = []
         else:
@@ -72,7 +75,7 @@ def _split_args(arg_string: str) -> List[str]:
 
 def _parse_value(raw: str) -> Any:
     raw = raw.strip()
-    if len(raw) >= 2 and raw[0] == '"' and raw[-1] == '"':
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in ('"', "'"):
         return raw[1:-1]
     try:
         if "." in raw:

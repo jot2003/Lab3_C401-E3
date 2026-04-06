@@ -46,12 +46,12 @@
     "id": "flight_only",
     "title": "Chỉ tìm vé SGN → HAN",
     "question": "Find flight offers from Ho Chi Minh (SGN) to Hanoi (HAN) on 2026-05-10 for one adult.",
-    "notes_vi": "Chủ yếu search_flights. Sandbox Amadeus có thể trả rỗng — dùng DEMO_TRAVEL_APIS hoặc đổi ngày.",
+    "notes_vi": "Chủ yếu search_flights. Duffel có thể trả rỗng theo ngày/route — dùng DEMO_TRAVEL_APIS hoặc đổi ngày.",
     "expected_tools": ["search_flights"],
     "references": [
       {
-        "label": "Amadeus Self-Service APIs",
-        "url": "https://developers.amadeus.com/"
+        "label": "Duffel Air APIs",
+        "url": "https://duffel.com/docs/api/overview"
       }
     ]
   },
