@@ -24,13 +24,27 @@ class GeminiProvider(LLMProvider):
         end_time = time.time()
         latency_ms = int((end_time - start_time) * 1000)
 
-        # Gemini usage data is in response.usage_metadata
-        content = response.text
-        usage = {
-            "prompt_tokens": response.usage_metadata.prompt_token_count,
-            "completion_tokens": response.usage_metadata.candidates_token_count,
-            "total_tokens": response.usage_metadata.total_token_count
-        }
+        try:
+            content = response.text or ""
+        except (ValueError, AttributeError):
+            content = ""
+            if getattr(response, "candidates", None):
+                parts = []
+                for c in response.candidates:
+                    for p in getattr(c.content, "parts", []) or []:
+                        if getattr(p, "text", None):
+                            parts.append(p.text)
+                content = "\n".join(parts)
+
+        um = getattr(response, "usage_metadata", None)
+        if um is not None:
+            usage = {
+                "prompt_tokens": getattr(um, "prompt_token_count", 0) or 0,
+                "completion_tokens": getattr(um, "candidates_token_count", 0) or 0,
+                "total_tokens": getattr(um, "total_token_count", 0) or 0,
+            }
+        else:
+            usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
         return {
             "content": content,
