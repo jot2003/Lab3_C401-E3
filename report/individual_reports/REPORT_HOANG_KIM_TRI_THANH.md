@@ -8,22 +8,22 @@
 
 ## I. Technical Contribution (15 Points)
 
-- **Modules Implementated**: `src/tools/flights.py`, `src/tools/registry.py`, `app.py`.
+- **Modules Implementated**: `src/tools/weather.py`, `docs/OPENWEATHER_SETUP_VI.md`, `app.py`.
 - **Code Highlights**:
-  - Triển khai tìm vé nâng cao: crawl ưu tiên, fallback API/demo.
-  - Bổ sung tool `search_roundtrip_flights`, `search_itinerary_flights`.
-  - Cập nhật citation theo nguồn thực tế (crawl/API).
+  - Cải thiện weather query retry với biến thể tên thành phố.
+  - Bổ sung link kiểm chứng trực tiếp và message lỗi rõ ràng.
+  - Cập nhật hiển thị citation theo kết quả tool.
 - **Documentation**:
-  - Luồng Agent gọi tool qua `registry.py`, parse tham số an toàn, và xuất observation có metadata để LLM tổng hợp câu trả lời.
+  - Đồng bộ hướng dẫn cấu hình OpenWeather để hỗ trợ debug nhanh cho team.
 
 ---
 
 ## II. Debugging Case Study (10 Points)
 
-- **Problem Description**: Lỗi 422 khi tìm chuyến bay dù input nhìn đúng.
-- **Log Source**: `logs/YYYY-MM-DD.log` với sự kiện `AGENT_OBSERVATION` chứa lỗi Duffel.
-- **Diagnosis**: Parser chưa bóc nháy đơn nên `'SGN'` được gửi nguyên văn thành IATA không hợp lệ.
-- **Solution**: Sửa parser để chuẩn hóa cả nháy đơn/nháy kép, thêm test hồi quy trong `tests/test_travel_tools.py`.
+- **Problem Description**: Agent trả lời sai lý do lỗi weather (hallucination) thay vì dùng observation thật.
+- **Log Source**: `logs/YYYY-MM-DD.log` tại chuỗi `AGENT_LLM_STEP` và `AGENT_OBSERVATION`.
+- **Diagnosis**: Prompt chưa đủ ràng buộc nên model bịa hạn chế API.
+- **Solution**: Cập nhật system prompt: bắt buộc dựa vào Observation, không tự chế nguyên nhân kỹ thuật.
 
 ---
 
@@ -37,9 +37,9 @@
 
 ## IV. Future Improvements (5 Points)
 
-- **Scalability**: Tách worker cho tool call bất đồng bộ và cache kết quả truy vấn lặp.
-- **Safety**: Thêm lớp kiểm duyệt Action trước khi gọi API ngoài.
-- **Performance**: Áp dụng schema output cứng + heuristic giảm số bước loop không cần thiết.
+- **Scalability**: Thêm tầng cache weather theo city/time.
+- **Safety**: Chuẩn hóa message lỗi thân thiện nhưng trung thực dữ liệu.
+- **Performance**: Giảm token qua prompt template ngắn hơn cho weather-only.
 
 ---
 

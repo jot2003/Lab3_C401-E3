@@ -8,38 +8,38 @@
 
 ## I. Technical Contribution (15 Points)
 
-- **Modules Implementated**: `src/tools/weather.py`, `docs/OPENWEATHER_SETUP_VI.md`, `app.py`.
+- **Modules Implementated**: `src/tools/flights.py`, `src/tools/registry.py`, `app.py`.
 - **Code Highlights**:
-  - Cải thiện weather query retry với biến thể tên thành phố.
-  - Bổ sung link kiểm chứng trực tiếp và message lỗi rõ ràng.
-  - Cập nhật hiển thị citation theo kết quả tool.
+  - Triển khai tìm vé nâng cao: crawl ưu tiên, fallback API/demo.
+  - Bổ sung tool `search_roundtrip_flights`, `search_itinerary_flights`.
+  - Cập nhật citation theo nguồn thực tế (crawl/API).
 - **Documentation**:
-  - Đồng bộ hướng dẫn cấu hình OpenWeather để hỗ trợ debug nhanh cho team.
+  - Luồng Agent gọi tool qua `registry.py`, parse tham số an toàn, và xuất observation có metadata để LLM tổng hợp câu trả lời.
 
 ---
 
 ## II. Debugging Case Study (10 Points)
 
-- **Problem Description**: Agent trả lời sai lý do lỗi weather (hallucination) thay vì dùng observation thật.
-- **Log Source**: `logs/YYYY-MM-DD.log` tại chuỗi `AGENT_LLM_STEP` và `AGENT_OBSERVATION`.
-- **Diagnosis**: Prompt chưa đủ ràng buộc nên model bịa hạn chế API.
-- **Solution**: Cập nhật system prompt: bắt buộc dựa vào Observation, không tự chế nguyên nhân kỹ thuật.
+- **Problem Description**: Lỗi 422 khi tìm chuyến bay dù input nhìn đúng.
+- **Log Source**: `logs/YYYY-MM-DD.log` với sự kiện `AGENT_OBSERVATION` chứa lỗi Duffel.
+- **Diagnosis**: Parser chưa bóc nháy đơn nên `'SGN'` được gửi nguyên văn thành IATA không hợp lệ.
+- **Solution**: Sửa parser để chuẩn hóa cả nháy đơn/nháy kép, thêm test hồi quy trong `tests/test_travel_tools.py`.
 
 ---
 
 ## III. Personal Insights: Chatbot vs ReAct (10 Points)
 
-1. **Reasoning**: ReAct giúp tách suy luận và thu thập dữ liệu, giảm trả lời “ảo”.
-2. **Reliability**: Agent có thể giảm ổn định khi tool timeout hoặc quota API bị giới hạn.
-3. **Observation**: Observation đóng vai trò “mặt đất sự thật”, giúp agent chỉnh chiến lược bước tiếp theo.
+1. **Reasoning**: ReAct giúp chia bài toán flight phức tạp thành các bước rõ ràng thay vì suy luận một lần.
+2. **Reliability**: Agent có thể kém ổn định nếu nguồn dữ liệu thời gian thực timeout hoặc trả về rỗng.
+3. **Observation**: Observation là căn cứ để agent điều chỉnh tool call kế tiếp, đặc biệt ở các query nhiều chặng.
 
 ---
 
 ## IV. Future Improvements (5 Points)
 
-- **Scalability**: Thêm tầng cache weather theo city/time.
-- **Safety**: Chuẩn hóa message lỗi thân thiện nhưng trung thực dữ liệu.
-- **Performance**: Giảm token qua prompt template ngắn hơn cho weather-only.
+- **Scalability**: Tách worker cho flight tool call bất đồng bộ và cache truy vấn tuyến lặp.
+- **Safety**: Thêm lớp kiểm duyệt Action trước khi gọi API ngoài.
+- **Performance**: Áp dụng schema output cứng + heuristic giảm số bước loop không cần thiết.
 
 ---
 

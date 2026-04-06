@@ -29,6 +29,11 @@ Hệ thống dùng vòng lặp Thought -> Action -> Observation:
 
 Ứng dụng Streamlit hiển thị tiến độ từng bước (streaming) để demo và truy vết rõ ràng.
 
+### 2.1.1 Team Contribution Split (final)
+- Hoàng Kim Trí Thành: mảng weather (`get_weather`, OpenWeather citation, weather reliability).
+- Đặng Đình Tú Anh: mảng flight (`search_flights`, roundtrip/itinerary, parser và citation kiểm chứng).
+- Các thành viên còn lại: agent loop, test/telemetry và đóng gói báo cáo.
+
 ### 2.2 Tool Definitions (Inventory)
 | Tool Name | Input Format | Use Case |
 | :--- | :--- | :--- |

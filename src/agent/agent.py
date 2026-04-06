@@ -1,3 +1,4 @@
+import json
 import re
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
@@ -24,6 +25,28 @@ def _parse_action(text: str) -> Optional[Tuple[str, str]]:
     if not m:
         return None
     return m.group(1), m.group(2)
+
+
+def _is_roundtrip_intent(text: str) -> bool:
+    s = (text or "").lower()
+    hints = [
+        "round trip",
+        "roundtrip",
+        "return flight",
+        "return date",
+        "come back",
+        "khứ hồi",
+        "khu hoi",
+        "hai chiều",
+        "hai chieu",
+        "chuyến về",
+        "chuyen ve",
+        "chiều về",
+        "chieu ve",
+        "vé về",
+        "ve ve",
+    ]
+    return any(h in s for h in hints)
 
 
 class ReActAgent:
@@ -61,8 +84,13 @@ Rules:
 - Use only these tool names: {", ".join(t["name"] for t in self.tools)}.
 - Action line may use EITHER positional args (a, b, c) OR keyword args (a=x, b=y, c=z) matching the tool parameter names exactly.
 - For all flight tools (`search_flights`, `search_roundtrip_flights`, `search_itinerary_flights`) use IATA airport codes: HAN (Hanoi), DAD (Da Nang), SGN (Ho Chi Minh City).
-- Use `search_roundtrip_flights` when the user asks for round-trip tickets.
+- Default to one-way search: if the user gives one route and one departure date (without return leg), use `search_flights`.
+- Use `search_roundtrip_flights` ONLY when the user explicitly asks for round-trip / return flight / khứ hồi.
 - Use `search_itinerary_flights` when the user asks for a multi-city tour (2+ legs).
+- For flight-related questions, prioritize getting concrete schedule/time data early: your FIRST tool call should usually be a flight tool (or weather tool if the question is weather-first), not budget math.
+- Do not delay data collection: call the key tool in step 1 whenever required inputs are present.
+- If date/time is missing or vague, infer using supported natural phrases (today, tomorrow, next monday, ngay nay tuan sau, cuoi tuan sau) and call the flight tool immediately with that phrase.
+- Only call `calculate_travel_budget` AFTER you already have flight cost/time observations.
 - For get_weather(city): map place names from the user's question to a normal query, e.g. "Da Nang, Vietnam" → `get_weather(Da Nang, VN)` or `get_weather(Da Nang)`. OpenWeather accepts "City, CC" style; there is no special problem with commas in the tool argument.
 - If the user's question is in English (no Vietnamese diacritics), still call get_weather — do not blame "Unicode", "accents", or "commas in the city string" unless Observation literally contains that error from the API (it usually will not).
 - Do NOT invent fake API limitations — use the tool and read Observation. If Observation is a success JSON with temp/description, your Final Answer must use that data. If Observation shows error JSON, explain only what that JSON says (e.g. missing key, 404, network).
@@ -132,6 +160,36 @@ Rules:
                 "AGENT_TOOL_CALL",
                 {"step": steps + 1, "tool": tool_name, "args_raw": arg_str[:500]},
             )
+
+            if tool_name == "search_roundtrip_flights" and not _is_roundtrip_intent(user_input):
+                obs = json.dumps(
+                    {
+                        "error": "Tool mismatch: this query appears one-way, not round-trip",
+                        "hint": "Use search_flights(origin, destination, departure_date) unless user explicitly asks return/khứ hồi.",
+                    },
+                    ensure_ascii=False,
+                )
+                logger.log_event(
+                    "AGENT_OBSERVATION",
+                    {"step": steps + 1, "tool": tool_name, "observation_preview": obs[:1500]},
+                )
+                scratchpad += f"\n{raw}\nObservation: {obs}\n"
+                self.history.append(
+                    {
+                        "step": steps + 1,
+                        "llm": raw,
+                        "tool": tool_name,
+                        "observation": obs,
+                    }
+                )
+                yield {
+                    "kind": "tool",
+                    "step": steps + 1,
+                    "tool": tool_name,
+                    "observation": obs,
+                }
+                steps += 1
+                continue
 
             obs = execute_tool(tool_name, arg_str)
             logger.log_event(

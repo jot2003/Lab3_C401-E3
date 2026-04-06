@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from urllib.parse import quote_plus
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Tuple
 import unicodedata
@@ -96,6 +97,18 @@ def _offer_request_resource_url(offer_request_id: Any) -> str:
     if isinstance(offer_request_id, str) and offer_request_id.strip():
         return f"{DUFFEL_OFFER_REQUEST_URL}/{offer_request_id.strip()}"
     return ""
+
+
+def _public_flight_search_url(origin: str, destination: str, departure_date: str) -> str:
+    o = (origin or "").strip().upper()
+    d = (destination or "").strip().upper()
+    dt = (departure_date or "").strip()
+    if not o or not d or not dt:
+        return ""
+    # Use query-based deep link instead of hash fragment; fragment links
+    # are more likely to open the homepage without prefilled route/date.
+    q = quote_plus(f"Flights from {o} to {d} on {dt}")
+    return f"https://www.google.com/travel/flights?hl=en&q={q}"
 
 
 def _norm_text(text: str) -> str:
@@ -315,14 +328,14 @@ def _search_flights_crawl(origin: str, destination: str, departure_date: str) ->
                 "ok": True,
                 "offers": [],
                 "source": "fast_flights_crawl",
-                "crawl_source_url": f"https://www.google.com/travel/flights?hl=en#flt={origin}.{destination}.{departure_date}",
+                "crawl_source_url": _public_flight_search_url(origin, destination, departure_date),
                 "note": "Crawler returned no offers.",
             }
         return {
             "ok": True,
             "offers": offers,
             "source": "fast_flights_crawl",
-            "crawl_source_url": f"https://www.google.com/travel/flights?hl=en#flt={origin}.{destination}.{departure_date}",
+            "crawl_source_url": _public_flight_search_url(origin, destination, departure_date),
             "note": None,
         }
     except Exception as e:
@@ -357,11 +370,14 @@ def search_flights(origin: str, destination: str, departure_date: str) -> str:
     api_first = mode in {"api_first", "api"}
 
     def _with_date_meta(payload: Dict[str, Any]) -> str:
+        payload["origin"] = origin
+        payload["destination"] = destination
         payload["departure_date_input"] = departure_date_raw
         payload["departure_date_normalized"] = departure_date
         payload["departure_date_candidates"] = date_parse.get("candidates") or []
         payload["departure_date_ambiguous"] = bool(date_parse.get("ambiguous"))
         payload["departure_date_note"] = date_parse.get("note")
+        payload["public_search_url"] = _public_flight_search_url(origin, destination, departure_date)
         return json.dumps(payload, ensure_ascii=False)
 
     def _demo_with_meta(reason: str) -> str:

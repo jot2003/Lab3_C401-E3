@@ -124,6 +124,7 @@ def observation_citation_markdown(tool: str, obs_raw: str) -> str:
             )
         req_id = d.get("duffel_offer_request_id")
         req_url = d.get("duffel_offer_request_url")
+        public_url = d.get("public_search_url")
         if not req_url and tool == "search_roundtrip_flights":
             out_r = d.get("outbound") or {}
             in_r = d.get("inbound") or {}
@@ -138,6 +139,7 @@ def observation_citation_markdown(tool: str, obs_raw: str) -> str:
                 )
             req_url = out_r.get("duffel_offer_request_url") or in_r.get("duffel_offer_request_url")
             req_id = out_r.get("duffel_offer_request_id") or in_r.get("duffel_offer_request_id")
+            public_url = out_r.get("public_search_url") or in_r.get("public_search_url")
         if not req_url and tool == "search_itinerary_flights":
             for leg in d.get("legs") or []:
                 rr = (leg.get("result") or {})
@@ -150,6 +152,7 @@ def observation_citation_markdown(tool: str, obs_raw: str) -> str:
                     )
                 req_url = rr.get("duffel_offer_request_url")
                 req_id = rr.get("duffel_offer_request_id")
+                public_url = rr.get("public_search_url")
                 if req_url:
                     break
         req_info = f" (offer_request_id: `{req_id}`)" if req_id else ""
@@ -158,8 +161,13 @@ def observation_citation_markdown(tool: str, obs_raw: str) -> str:
             if req_url
             else "Khong co `offer_request_id`, nen khong tao duoc link tai nguyen realtime."
         )
+        public_verify = (
+            f"[Mo ket qua tim kiem cong khai (Google Flights)]({public_url})"
+            if public_url
+            else "Khong tao duoc deep-link cong khai."
+        )
         return (
-            f"**Nguon:** {realtime}{req_info}. "
+            f"**Nguon:** {public_verify}. {realtime}{req_info}. "
             "[Tai lieu endpoint tao offer request](https://duffel.com/docs/api/offer-requests/create-offer-request). "
             "Chi tiet goi API trong `src/tools/flights.py`."
         )
