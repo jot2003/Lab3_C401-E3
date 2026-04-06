@@ -1,12 +1,14 @@
 import json
-import os
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
-def test_summarize_logs_script(tmp_path):
+from src.reporting.log_summary import summarize_logs_to_csv
+
+
+def test_summarize_logs_core(tmp_path):
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
     lines = [
@@ -31,14 +33,7 @@ def test_summarize_logs_script(tmp_path):
     p.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
 
     out_dir = tmp_path / "out"
-    root = Path(__file__).resolve().parent.parent
-    script = root / "scripts" / "summarize_logs.py"
-    r = subprocess.run(
-        [sys.executable, str(script), "--log-dir", str(log_dir), "--out-dir", str(out_dir)],
-        cwd=str(root),
-        capture_output=True,
-        text=True,
-    )
-    assert r.returncode == 0, r.stderr
+    res = summarize_logs_to_csv(log_dir, out_dir, "*.log")
+    assert res["ok"]
     assert (out_dir / "llm_metrics.csv").is_file()
     assert (out_dir / "sessions_summary.csv").is_file()

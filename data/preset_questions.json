@@ -1,0 +1,71 @@
+[
+  {
+    "id": "travel_budget_multi",
+    "title": "HAN → DAD: thời tiết, vé, ngân sách",
+    "question": "I want to fly from Hanoi (HAN) to Da Nang (DAD) on 2026-04-15. Budget 8000000 VND total for 2 nights, hotel 900000 VND per night. Check weather in Da Nang and flight prices, then say if the budget works.",
+    "notes_vi": "Kịch bản nhiều bước: get_weather + search_flights + calculate_travel_budget. Phù hợp trace Discord và so sánh với chatbot.",
+    "expected_tools": ["get_weather", "search_flights", "calculate_travel_budget"],
+    "references": [
+      {
+        "label": "Rubric / SCORING (repo gốc khóa học)",
+        "url": "https://github.com/VinUni-AI20k/Day-3-Lab-Chatbot-vs-react-agent/blob/main/SCORING.md"
+      },
+      {
+        "label": "Mã IATA sân bay (HAN, DAD)",
+        "url": "https://www.iata.org/en/publications/directories/code-search/"
+      }
+    ]
+  },
+  {
+    "id": "weather_only",
+    "title": "Chỉ thời tiết Đà Nẵng",
+    "question": "What is the current weather in Da Nang, Vietnam? Should I plan a beach day tomorrow?",
+    "notes_vi": "Một tool thời tiết; chatbot có thể trả lời chung chung, agent gọi API/demo.",
+    "expected_tools": ["get_weather"],
+    "references": [
+      {
+        "label": "OpenWeather API docs",
+        "url": "https://openweathermap.org/api"
+      }
+    ]
+  },
+  {
+    "id": "budget_only",
+    "title": "Chỉ tính tiền còn lại",
+    "question": "My total budget is 10000000 VND. Flight return ticket is 3000000. Hotel 800000 per night for 3 nights. How much money left per day approximately?",
+    "notes_vi": "Gần như chỉ calculate_travel_budget (có thể model tự quyết không cần tool nếu đủ số).",
+    "expected_tools": ["calculate_travel_budget"],
+    "references": [
+      {
+        "label": "Code tool budget.py (trong repo)",
+        "url": "https://github.com/jot2003/Day-3-Lab-Chatbot-vs-react-agent/blob/main/src/tools/budget.py"
+      }
+    ]
+  },
+  {
+    "id": "flight_only",
+    "title": "Chỉ tìm vé SGN → HAN",
+    "question": "Find flight offers from Ho Chi Minh (SGN) to Hanoi (HAN) on 2026-05-10 for one adult.",
+    "notes_vi": "Chủ yếu search_flights. Sandbox Amadeus có thể trả rỗng — dùng DEMO_TRAVEL_APIS hoặc đổi ngày.",
+    "expected_tools": ["search_flights"],
+    "references": [
+      {
+        "label": "Amadeus Self-Service APIs",
+        "url": "https://developers.amadeus.com/"
+      }
+    ]
+  },
+  {
+    "id": "vietnamese_short",
+    "title": "Tiếng Việt ngắn (đủ phức tạp)",
+    "question": "Tôi có 5 triệu, muốn bay HAN sang DAD ngày 2026-04-20, ở 1 đêm khách sạn 600k/đêm. Kiểm tra thời tiết Đà Nẵng và vé rẻ nhất, cho biết có đủ tiền không.",
+    "notes_vi": "Model có thể mix tiếng Việt; tool vẫn dùng định dạng Action như prompt English.",
+    "expected_tools": ["get_weather", "search_flights", "calculate_travel_budget"],
+    "references": [
+      {
+        "label": "EVALUATION metrics (lab)",
+        "url": "https://github.com/VinUni-AI20k/Day-3-Lab-Chatbot-vs-react-agent/blob/main/EVALUATION.md"
+      }
+    ]
+  }
+]

@@ -1,10 +1,14 @@
 """
-Giao diện web (Streamlit). Chạy từ thư mục gốc repo:
-  streamlit run app.py
+Giao diện Streamlit: câu hỏi mẫu + tự nhập, chạy agent/chatbot, xuất CSV, trích dẫn nguồn.
+
+  python -m streamlit run app.py
 """
+from __future__ import annotations
+
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -19,14 +23,21 @@ load_dotenv(ROOT / ".env")
 from src.agent.agent import ReActAgent
 from src.chatbot import TravelChatbotBaseline
 from src.core.provider_factory import build_llm_from_env
+from src.reporting.log_summary import append_feedback, summarize_logs_to_csv
 from src.tools.registry import get_tool_specs
 
-# Đổi chuỗi này nếu cần ép Streamlit bỏ cache LLM cũ (đã từng cache gemini-1.5-flash).
 _LLM_CACHE_VERSION = "v4-keyed-cache"
 
 
+@st.cache_data
+def load_preset_questions() -> list:
+    path = ROOT / "data" / "preset_questions.json"
+    if not path.is_file():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _llm_resource_cache_key() -> tuple:
-    """Khóa cache: đổi .env (model/key) là tạo LLM mới, không dùng bản 1.5-flash cũ."""
     load_dotenv(ROOT / ".env", override=True)
     key = os.getenv("GEMINI_API_KEY", "") or ""
     hint = (key[:12] + key[-8:]) if len(key) > 20 else key
@@ -47,12 +58,50 @@ def _cached_llm(_cache_key: tuple):
         if "google" in name or "generativeai" in str(e).lower():
             py = sys.executable
             raise RuntimeError(
-                "Thiếu package `google-generativeai` trong đúng môi trường Python đang chạy Streamlit.\n\n"
-                f"Chạy trong terminal:\n```\n\"{py}\" -m pip install google-generativeai\n```\n"
-                f"Sau đó khởi động lại UI bằng **cùng** Python:\n```\n\"{py}\" -m streamlit run app.py\n```\n"
-                "(Tránh gõ lệnh `streamlit` trần nếu máy có nhiều Python — dễ cài nhầm env.)"
+                "Thieu package `google-generativeai`.\n\n"
+                f'Chay: `"{py}" -m pip install google-generativeai` roi `"{py}" -m streamlit run app.py`'
             ) from e
         raise
+
+
+def observation_citation_markdown(tool: str, obs_raw: str) -> str:
+    """Trich dan nguon de nguoi doc tu kiem chung."""
+    try:
+        d = json.loads(obs_raw)
+    except (json.JSONDecodeError, TypeError):
+        return f"**Nguon:** raw observation (khong parse JSON). Tool `{tool}`."
+
+    if d.get("_demo") is True:
+        return (
+            "**Nguon (kiem chung):** Du lieu **MO PHONG** — `DEMO_TRAVEL_APIS=1` hoac thieu key OpenWeather/Amadeus. "
+            "Khong phai gia/weather thuc te. Ma nguon: `src/tools/demo_fallback.py`. "
+            "Tai lieu cau hinh: `.env.example` trong repo."
+        )
+    if d.get("error"):
+        return (
+            f"**Nguon / loi:** `{d.get('error')}` — "
+            f"{d.get('hint', '(xem huong dan trong JSON)')}"
+        )
+    if tool == "get_weather":
+        return (
+            "**Nguon:** [OpenWeatherMap — Current weather & 5 day forecast](https://openweathermap.org/api), "
+            "phan cong API da dung trong `src/tools/weather.py`."
+        )
+    if tool == "search_flights":
+        return (
+            "**Nguon:** [Amadeus Self-Service — Flight Offers Search](https://developers.amadeus.com/self-service), "
+            "Test API trong `src/tools/flights.py`."
+        )
+    if tool == "calculate_travel_budget":
+        return "**Nguon:** Tinh toan cuc bo (Python), khong goi API ngoai — `src/tools/budget.py`."
+
+    return f"**Nguon:** Ket qua tool `{tool}`; doi chieu voi ma trong `src/tools/`."
+
+
+def run_export_summaries() -> dict:
+    log_dir = ROOT / "logs"
+    out_dir = ROOT / "report" / "exports"
+    return summarize_logs_to_csv(log_dir, out_dir, "*.log")
 
 
 def main() -> None:
@@ -64,89 +113,199 @@ def main() -> None:
         layout="wide",
     )
 
-    st.title("Lab 3: Chatbot vs ReAct Agent")
-    st.caption("Chủ đề du lịch — Gemini + OpenWeather + Amadeus + tính ngân sách")
+    tab_run, tab_export, tab_refs = st.tabs(["Chay thu (Agent / Chatbot)", "Bao cao & xuat CSV", "Nguon & rubric"])
 
-    with st.sidebar:
-        st.subheader("Cấu hình")
-        mode = st.radio(
-            "Chế độ",
-            options=["agent", "chatbot"],
-            format_func=lambda x: (
-                "ReAct Agent (có tools)" if x == "agent" else "Chatbot baseline (không tools)"
-            ),
-            index=0,
-        )
-        max_steps = st.number_input(
-            "Agent: số bước tối đa",
-            min_value=1,
-            max_value=24,
-            value=int(os.getenv("AGENT_MAX_STEPS", "8")),
-        )
-        st.divider()
-        if st.button("Xóa cache LLM & tải lại", help="Bắt buộc sau khi đổi model/API; tránh lỗi 404 model cũ."):
-            st.cache_resource.clear()
-            st.rerun()
-        st.markdown(
-            "Cần file `.env` với `GEMINI_API_KEY` và (tuỳ chọn) OpenWeather / Amadeus. "
-            "Sau khi sửa `.env`: bấm nút trên hoặc **⋮ → Clear cache**."
-        )
-        st.caption(f"Python đang dùng: `{sys.executable}`")
-        st.caption(
-            f"Model trong `.env`: `{os.getenv('DEFAULT_MODEL', '')}` "
-            f"(code sẽ map sang model API còn hỗ trợ nếu cần)."
-        )
-
-    default_q = (
+    presets = load_preset_questions()
+    default_fallback = (
         "I want to fly from Hanoi (HAN) to Da Nang (DAD) on 2026-04-15. "
         "Budget 8000000 VND total for 2 nights, hotel 900000 VND per night. "
         "Check weather in Da Nang and flight prices, then say if the budget works."
     )
-    question = st.text_area("Câu hỏi / kịch bản", value=default_q, height=140)
 
-    if st.button("Chạy", type="primary"):
-        q = question.strip()
-        if not q:
-            st.warning("Nhập câu hỏi trước khi chạy.")
-            return
+    with tab_run:
+        st.title("Lab 3: Chatbot vs ReAct Agent")
+        st.caption("Chu de du lich — chon cau hoi mau hoac tu nhap; moi buoc trace kem **trich dan nguon**.")
 
-        try:
-            llm = _cached_llm(_llm_resource_cache_key())
-        except RuntimeError as e:
-            st.markdown(str(e))
-            return
-        except Exception as e:
-            st.error(f"Không khởi tạo được LLM. Kiểm tra `.env` và API key: {e}")
-            return
+        if "main_question_text" not in st.session_state:
+            st.session_state.main_question_text = (
+                presets[0]["question"] if presets else default_fallback
+            )
 
-        with st.spinner("Đang xử lý (có thể mất vài chục giây với agent)…"):
-            if mode == "chatbot":
-                bot = TravelChatbotBaseline(llm)
-                answer = bot.reply(q)
-                st.subheader("Trả lời (chatbot)")
-                st.markdown(answer)
+        with st.sidebar:
+            st.subheader("Cau hinh")
+            mode = st.radio(
+                "Che do",
+                options=["agent", "chatbot"],
+                format_func=lambda x: "ReAct Agent (co tools)" if x == "agent" else "Chatbot baseline (khong tools)",
+                index=0,
+            )
+            max_steps = st.number_input(
+                "Agent: so buoc toi da",
+                min_value=1,
+                max_value=24,
+                value=int(os.getenv("AGENT_MAX_STEPS", "8")),
+            )
+            auto_csv = st.checkbox("Tu dong cap nhat CSV sau khi chay xong", value=True)
+            st.divider()
+            if st.button("Xoa cache LLM & tai lai"):
+                st.cache_resource.clear()
+                st.rerun()
+            st.caption(f"Python: `{sys.executable}`")
+            st.caption(f"Model .env: `{os.getenv('DEFAULT_MODEL', '')}`")
+
+        st.subheader("Bo cau hoi mau")
+        selected_preset = None
+        if not presets:
+            st.warning("Thieu `data/preset_questions.json`. Hay pull repo day du.")
+        else:
+            preset_titles = [p["title"] for p in presets]
+            sel_title = st.selectbox("Chon kich ban", preset_titles, key="preset_title_pick")
+            selected_preset = next(p for p in presets if p["title"] == sel_title)
+            if st.session_state.get("_last_preset_title") != sel_title:
+                st.session_state.main_question_text = selected_preset["question"]
+                st.session_state._last_preset_title = sel_title
+            st.info(selected_preset.get("notes_vi", ""))
+            refs_md = "\n".join(
+                f"- [{r['label']}]({r['url']})" for r in selected_preset.get("references", [])
+            )
+            if refs_md:
+                st.markdown("**Tai lieu kiem chung (ngoai repo):** " + refs_md)
+
+        st.subheader("Noi dung se gui cho LLM")
+        question = st.text_area(
+            "Sua tai day neu can (tieng Anh hoac Viet deu duoc)",
+            height=150,
+            key="main_question_text",
+        )
+
+        log_today = ROOT / "logs" / f"{datetime.now():%Y-%m-%d}.log"
+        st.markdown(
+            f"**Log JSON hom nay (de doi chieu trace):** `{log_today.resolve()}`  \n"
+            "*Moi su kien AGENT_*, LLM_METRIC ghi trong file nay — mo bang VS Code / Notepad.*"
+        )
+
+        if st.button("Chay", type="primary"):
+            q = question.strip()
+            if not q:
+                st.warning("Nhap cau hoi.")
             else:
-                agent = ReActAgent(llm, get_tool_specs(), max_steps=int(max_steps))
-                answer = agent.run(q)
-                st.subheader("Kết quả (agent)")
-                st.markdown(answer)
+                try:
+                    llm = _cached_llm(_llm_resource_cache_key())
+                except RuntimeError as e:
+                    st.markdown(str(e))
+                except Exception as e:
+                    st.error(f"LLM: {e}")
+                else:
+                    with st.spinner("Dang xu ly..."):
+                        if mode == "chatbot":
+                            bot = TravelChatbotBaseline(llm)
+                            answer = bot.reply(q)
+                            st.subheader("Tra loi (chatbot)")
+                            st.markdown(answer)
+                        else:
+                            agent = ReActAgent(llm, get_tool_specs(), max_steps=int(max_steps))
+                            answer = agent.run(q)
+                            st.subheader("Ket qua (agent)")
+                            st.markdown(answer)
 
-                if agent.history:
-                    with st.expander("Trace ReAct — Thought / Action / Observation", expanded=True):
-                        for h in agent.history:
-                            st.markdown(f"##### Bước {h['step']}")
-                            st.markdown("**LLM (raw)**")
-                            st.code(h.get("llm", "") or "", language="markdown")
-                            if h.get("final"):
-                                st.success("Final Answer trong khối trên.")
-                            if h.get("tool"):
-                                st.markdown(f"**Tool:** `{h['tool']}`")
-                                st.markdown("**Observation**")
-                                obs = h.get("observation") or ""
-                                try:
-                                    st.json(json.loads(obs))
-                                except (json.JSONDecodeError, TypeError):
-                                    st.text(obs)
+                            if agent.history:
+                                with st.expander("Trace ReAct + trich dan nguon moi buoc", expanded=True):
+                                    for h in agent.history:
+                                        st.markdown(f"##### Buoc {h['step']}")
+                                        st.markdown("**LLM (raw)**")
+                                        st.code(h.get("llm", "") or "", language="markdown")
+                                        if h.get("final"):
+                                            st.success("Co Final Answer trong khoi tren.")
+                                        if h.get("tool"):
+                                            st.markdown(f"**Tool:** `{h['tool']}`")
+                                            st.markdown(observation_citation_markdown(h["tool"], h.get("observation") or ""))
+                                            obs = h.get("observation") or ""
+                                            try:
+                                                st.json(json.loads(obs))
+                                            except (json.JSONDecodeError, TypeError):
+                                                st.text(obs)
+
+                    if auto_csv:
+                        exp = run_export_summaries()
+                        st.session_state["last_export"] = exp
+                        if exp["ok"]:
+                            st.success("Da cap nhat CSV trong `report/exports/` (xem tab Bao cao).")
+                        else:
+                            st.warning(exp["messages"][0] if exp["messages"] else "Chua xuat duoc CSV.")
+
+    with tab_export:
+        st.header("Bao cao & xuat file")
+        st.markdown(
+            "Thu muc output: `report/exports/` (gitignore — ban copy CSV vao bao cao nhom neu can).  \n"
+            "Script CLI tuong duong: `python scripts/summarize_logs.py`"
+        )
+
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Lam moi CSV tu logs/ hien tai"):
+                exp = run_export_summaries()
+                st.session_state["last_export"] = exp
+                for m in exp["messages"]:
+                    st.write(m)
+        with c2:
+            st.markdown("Sau khi chay agent/chatbot (hoac nut ben trai), kiem tra file:")
+
+        out_dir = ROOT / "report" / "exports"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for name, fname in [
+            ("LLM metrics", "llm_metrics.csv"),
+            ("Sessions", "sessions_summary.csv"),
+            ("Event counts", "event_counts.csv"),
+        ]:
+            fp = out_dir / fname
+            if fp.is_file():
+                st.download_button(
+                    label=f"Tai ve {fname}",
+                    data=fp.read_bytes(),
+                    file_name=fname,
+                    mime="text/csv",
+                    key=f"dl_{fname}",
+                )
+                st.caption(f"Cap nhat: {datetime.fromtimestamp(fp.stat().st_mtime).isoformat(sep=' ', timespec='seconds')}")
+            else:
+                st.caption(f"{fname}: (chua co — chay agent hoac nut Lam moi)")
+
+        st.divider()
+        st.subheader("Feedback cho nhom / GV")
+        st.markdown("Ghi y kien hoac loi phat hien; luu vao `report/ui_feedback.md` trong repo (co the commit).")
+        fb = st.text_area("Noi dung feedback", height=120, key="fb_text")
+        fb_name = st.text_input("Ten / vai tro (tuy chon)", key="fb_name")
+        if st.button("Ghi feedback vao report/ui_feedback.md"):
+            if fb.strip():
+                path = append_feedback(ROOT, fb, context=fb_name.strip() or "Streamlit UI")
+                st.success(f"Da ghi: `{path.relative_to(ROOT)}` — vui long commit / gui PR.")
+            else:
+                st.warning("Feedback trong.")
+
+    with tab_refs:
+        st.markdown(
+            """
+### Rubric & tai lieu lab (kiem chung)
+
+- [SCORING.md — diem nhom + ca nhan](https://github.com/VinUni-AI20k/Day-3-Lab-Chatbot-vs-react-agent/blob/main/SCORING.md)
+- [EVALUATION.md — metrics](https://github.com/VinUni-AI20k/Day-3-Lab-Chatbot-vs-react-agent/blob/main/EVALUATION.md)
+- [INSTRUCTOR_GUIDE.md](https://github.com/VinUni-AI20k/Day-3-Lab-Chatbot-vs-react-agent/blob/main/INSTRUCTOR_GUIDE.md)
+
+### API ngoai (du lieu thuc, khong phai demo)
+
+- [Gemini API / Rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)
+- [OpenWeatherMap API](https://openweathermap.org/api)
+- [Amadeus for Developers](https://developers.amadeus.com/)
+
+### Trong repo (ma nguon)
+
+- Preset cau hoi: `data/preset_questions.json`
+- Tools: `src/tools/` — `weather.py`, `flights.py`, `budget.py`, `demo_fallback.py`
+- Agent ReAct: `src/agent/agent.py`
+- Tong hop log: `src/reporting/log_summary.py`, `scripts/summarize_logs.py`
+- Checklist viec: `report/VIEC_CAN_LAM.md`
+"""
+        )
 
 
 if __name__ == "__main__":

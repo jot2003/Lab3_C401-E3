@@ -81,7 +81,7 @@ python -m streamlit run app.py
 
 Dùng `python -m streamlit` thay vì gõ `streamlit` trần để trùng với đúng bản Python đã cài package (tránh lỗi `No module named 'google.generativeai'`).
 
-Trình duyệt mở `http://localhost:8501` — chọn Agent hoặc Chatbot, nhập câu hỏi, bấm **Chạy**. Trace ReAct nằm trong phần mở rộng bên dưới kết quả.
+Trình duyệt mở `http://localhost:8501` — **3 tab:** chạy thử (câu hỏi mẫu từ `data/preset_questions.json` + tự nhập), xuất CSV / feedback, liên kết rubric & API. Sau mỗi lần chạy có thể **tự động cập nhật** `report/exports/*.csv`. Mỗi bước trace có **trích dẫn nguồn** (OpenWeather, Amadeus, demo, file log).
 
 ### Dòng lệnh (CLI)
 

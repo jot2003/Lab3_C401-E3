@@ -8,6 +8,7 @@
 
 - [ ] Mỗi người `git pull`, copy `.env.example` → `.env`, **không** commit `.env`.
 - [ ] Cài: `pip install -r requirements-travel.txt`.
+- [ ] **Bộ câu hỏi mẫu:** `data/preset_questions.json` — đã tích hợp trong Streamlit (chọn kịch bản + sửa ô tuỳ ý).
 - [ ] Chạy agent: `python main.py --mode agent` hoặc `python -m streamlit run app.py`.
 - [ ] Chạy baseline: `python main.py --mode chatbot` (cùng câu hỏi để so sánh).
 
