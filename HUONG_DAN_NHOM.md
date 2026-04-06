@@ -60,7 +60,7 @@ Sửa `.env` và điền key thật:
 | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
 | `DEFAULT_PROVIDER` | `google` |
 | `DEFAULT_MODEL` | ví dụ `gemini-1.5-flash` |
-| `OPENWEATHER_API_KEY` | [OpenWeatherMap](https://openweathermap.org/api) |
+| `OPENWEATHER_API_KEY` | [OpenWeatherMap](https://openweathermap.org/api) — chi tiết bước lấy key & lỗi 401: **`docs/OPENWEATHER_SETUP_VI.md`** |
 | `AMADEUS_CLIENT_ID` | [Amadeus Developers](https://developers.amadeus.com/) — app **Test** |
 | `AMADEUS_CLIENT_SECRET` | cặp với Client ID |
 | `DEMO_TRAVEL_APIS` | `1` = thiếu OpenWeather/Amadeus thì dùng dữ liệu mẫu; `0` + đủ key = API thật |

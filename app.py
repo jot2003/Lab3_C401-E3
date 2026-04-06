@@ -83,9 +83,13 @@ def observation_citation_markdown(tool: str, obs_raw: str) -> str:
             f"{d.get('hint', '(xem huong dan trong JSON)')}"
         )
     if tool == "get_weather":
+        if d.get("source") == "openweathermap.org/data/2.5":
+            return (
+                "**Nguon:** [OpenWeatherMap API](https://openweathermap.org/api) — endpoint `data/2.5/weather` + `forecast`. "
+                "Huong dan key / loi 401: `docs/OPENWEATHER_SETUP_VI.md`."
+            )
         return (
-            "**Nguon:** [OpenWeatherMap — Current weather & 5 day forecast](https://openweathermap.org/api), "
-            "phan cong API da dung trong `src/tools/weather.py`."
+            "**Nguon:** [OpenWeatherMap](https://openweathermap.org/api) — xem `src/tools/weather.py`."
         )
     if tool == "search_flights":
         return (
