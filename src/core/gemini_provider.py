@@ -2,6 +2,9 @@ import os
 import time
 import google.generativeai as genai
 from typing import Dict, Any, Optional, Generator
+
+from google.api_core import exceptions as google_api_exceptions
+
 from src.core.llm_provider import LLMProvider
 from src.core.gemini_model_resolve import resolve_gemini_model_id
 
@@ -23,13 +26,24 @@ class GeminiProvider(LLMProvider):
         if system_prompt:
             full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
 
-        response = self.model.generate_content(full_prompt)
+        max_attempts = max(1, int(os.getenv("GEMINI_MAX_RETRIES", "5")))
+        response = None
+        for attempt in range(max_attempts):
+            try:
+                response = self.model.generate_content(full_prompt)
+                break
+            except google_api_exceptions.ResourceExhausted as e:
+                # 429: RPM/RPD free tier — chờ rồi thử lại; nếu hết quota ngày thì retry vẫn fail.
+                if attempt >= max_attempts - 1:
+                    raise
+                wait_s = min(120.0, 20.0 + attempt * 12.0)
+                time.sleep(wait_s)
 
         end_time = time.time()
         latency_ms = int((end_time - start_time) * 1000)
 
         try:
-            content = response.text or ""
+            content = (response.text or "") if response else ""
         except (ValueError, AttributeError):
             content = ""
             if getattr(response, "candidates", None):

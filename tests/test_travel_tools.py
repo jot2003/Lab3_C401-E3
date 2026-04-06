@@ -24,6 +24,26 @@ def test_calculate_travel_budget_execute():
     assert data["feasible"] is True
 
 
+def test_calculate_travel_budget_keyword_style():
+    """LLM (Gemini) hay in Action: calculate_travel_budget(a=1, b=2, ...)."""
+    raw = execute_tool(
+        "calculate_travel_budget",
+        "total_budget_vnd=8000000, flight_cost_vnd=1250000, hotel_per_night_vnd=900000, num_nights=2",
+    )
+    data = json.loads(raw)
+    assert "error" not in data
+    assert data["remaining_vnd"] == 8000000 - 1250000 - 1800000
+
+
+def test_search_flights_keyword_style():
+    raw = execute_tool(
+        "search_flights",
+        "origin=HAN, destination=DAD, departure_date=2026-04-20",
+    )
+    data = json.loads(raw)
+    assert "error" not in data or "Amadeus" in data.get("error", "")
+
+
 def test_unknown_tool():
     raw = execute_tool("fake_tool", "")
     data = json.loads(raw)

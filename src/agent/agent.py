@@ -59,6 +59,7 @@ Final Answer: clear answer for the user (can be in Vietnamese).
 
 Rules:
 - Use only these tool names: {", ".join(t["name"] for t in self.tools)}.
+- Action line may use EITHER positional args (a, b, c) OR keyword args (a=x, b=y, c=z) matching the tool parameter names exactly.
 - For search_flights use IATA airport codes: HAN (Hanoi), DAD (Da Nang), SGN (Ho Chi Minh City).
 - Pass string cities to get_weather in English, e.g. Da Nang or "Hanoi, VN".
 - Numbers in Action must not use thousand separators (use 5000000 not 5,000,000).
