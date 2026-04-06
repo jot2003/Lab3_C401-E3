@@ -1,0 +1,53 @@
+# Việc cần làm — Lab 3 (checklist nhóm & cá nhân)
+
+Đối chiếu `SCORING.md`, `EVALUATION.md`, `report/NOP_BAI_CHECKLIST.md`.
+
+---
+
+## A. Code & chạy thử (đã có sẵn — chỉ cần dùng đúng)
+
+- [ ] Mỗi người `git pull`, copy `.env.example` → `.env`, **không** commit `.env`.
+- [ ] Cài: `pip install -r requirements-travel.txt`.
+- [ ] Chạy agent: `python main.py --mode agent` hoặc `python -m streamlit run app.py`.
+- [ ] Chạy baseline: `python main.py --mode chatbot` (cùng câu hỏi để so sánh).
+
+## B. Tổng hợp số liệu cho báo cáo (Evaluation)
+
+- [ ] Sau khi chạy nhiều lần, xuất CSV từ log:
+  ```bash
+  python scripts/summarize_logs.py
+  ```
+  File tạo trong `report/exports/` (thư mục này **gitignore** — copy bảng vào báo cáo Word/Google Doc nếu cần nộp).
+- [ ] Đọc `llm_metrics.csv`: latency, tokens, **completion_ratio**; gom theo session **agent** vs **chatbot**.
+- [ ] Đọc `sessions_summary.csv`: **steps**, **outcome** (`final_answer` / `max_steps`), **llm_calls**.
+
+## C. Báo cáo nhóm (`report/group_report/GROUP_REPORT_[TEN].md`)
+
+- [ ] Executive summary + tỷ lệ thành công (số câu test tự định nghĩa).
+- [ ] Kiến trúc ReAct + bảng tool (tiến hóa mô tả / tham số nếu có v2).
+- [ ] **Agent v1 vs v2** (mô tả thay đổi: prompt, parse `Action`, demo/API, retry Gemini, resolve model…).
+- [ ] **Hai trace**: một **thành công**, một **thất bại** (parse / 429 / thiếu key) — trích `logs/` hoặc Discord.
+- [ ] Bảng **Chatbot vs Agent** (đúng/sai hoặc chất lượng câu trả lời + token/latency từ CSV).
+- [ ] Flowchart + insight nhóm.
+- [ ] RCA ngắn (1 case failure).
+
+## D. Discord / lớp
+
+- [ ] Post trace Thought → Action → Observation, **≥ 3 bước**, ghi tool + tham số + Observation.
+
+## E. Báo cáo cá nhân (`report/individual_reports/REPORT_[HO_TEN].md`)
+
+- [ ] I. Đóng góp code (file cụ thể).
+- [ ] II. Một **debug case** có trích log.
+- [ ] III. Insight Chatbot vs ReAct (3 câu hỏi template).
+- [ ] IV. Hướng phát triển production.
+
+## F. Bonus (tùy thời gian)
+
+- [ ] Extra tool (hotel, search…).
+- [ ] Bảng ablation prompt (2 phiên bản, đếm lỗi).
+- [ ] Demo trực tiếp với GV (+5).
+
+---
+
+*Cập nhật khi xong: đánh dấu `[x]` và giao Git/ Drive cho nhóm trưởng.*

@@ -79,4 +79,6 @@ Có thể export bảng từ log hoặc chạy script parse — quan trọng là
 
 ---
 
+Checklist việc theo từng nhóm: xem thêm `report/VIEC_CAN_LAM.md`. Xuất số liệu từ log: `python scripts/summarize_logs.py`.
+
 *Tài liệu này chỉ là checklist; rubric chính thức vẫn là `SCORING.md`.*

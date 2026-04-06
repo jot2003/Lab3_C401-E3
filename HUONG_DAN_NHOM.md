@@ -126,17 +126,31 @@ python -m pytest tests/test_travel_tools.py -v
 
 ---
 
-## 5. Nộp bài & Discord (tóm tắt)
+## 5. Tổng hợp log → CSV (báo cáo Evaluation)
+
+Sau khi chạy agent/chatbot (có file trong `logs/`):
+
+```bash
+python scripts/summarize_logs.py
+```
+
+Kết quả trong `report/exports/`: `llm_metrics.csv`, `sessions_summary.csv`, `event_counts.csv` (thư mục `exports/` không commit — dùng để chèn bảng vào báo cáo).
+
+Checklist việc chi tiết: `report/VIEC_CAN_LAM.md`.
+
+---
+
+## 6. Nộp bài & Discord (tóm tắt)
 
 - **Nhóm:** đổi tên file → `report/group_report/GROUP_REPORT_[TEN_NHOM].md` (theo template)
 - **Cá nhân:** `report/individual_reports/REPORT_[HO_TEN].md`
 - **Discord:** post trace Thought / Action / Observation, **ít nhất 3 bước**, ghi rõ tool + tham số + kết quả
 
-Chi tiết: mở `report/NOP_BAI_CHECKLIST.md` và `SCORING.md`.
+Chi tiết: `report/NOP_BAI_CHECKLIST.md`, `report/VIEC_CAN_LAM.md`, `SCORING.md`.
 
 ---
 
-## 6. Remote Git (cho người maintain)
+## 7. Remote Git (cho người maintain)
 
 - `origin` → repo nhóm **jot2003**
 - `upstream` → repo gốc VinUni (nếu sau này muốn `git fetch upstream` để xem thay đổi khóa học)

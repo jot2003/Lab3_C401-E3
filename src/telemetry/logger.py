@@ -16,15 +16,14 @@ class IndustryLogger:
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        # File Handler (JSON)
         log_file = os.path.join(log_dir, f"{datetime.now().strftime('%Y-%m-%d')}.log")
         file_handler = logging.FileHandler(log_file)
-        
-        # Console Handler
         console_handler = logging.StreamHandler()
-        
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
+
+        # Tránh double handler khi import lặp / nhiều test process cùng tên logger
+        if not self.logger.handlers:
+            self.logger.addHandler(file_handler)
+            self.logger.addHandler(console_handler)
 
     def log_event(self, event_type: str, data: Dict[str, Any]):
         """Logs an event with a timestamp and type."""

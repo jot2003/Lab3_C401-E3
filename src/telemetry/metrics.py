@@ -13,14 +13,17 @@ class PerformanceTracker:
         """
         Logs a single request metric to our telemetry.
         """
+        pt = int(usage.get("prompt_tokens", 0) or 0)
+        ct = int(usage.get("completion_tokens", 0) or 0)
         metric = {
             "provider": provider,
             "model": model,
-            "prompt_tokens": usage.get("prompt_tokens", 0),
-            "completion_tokens": usage.get("completion_tokens", 0),
+            "prompt_tokens": pt,
+            "completion_tokens": ct,
             "total_tokens": usage.get("total_tokens", 0),
             "latency_ms": latency_ms,
-            "cost_estimate": self._calculate_cost(model, usage) # Mock cost calculation
+            "completion_ratio": round(ct / max(pt, 1), 6),
+            "cost_estimate": self._calculate_cost(model, usage),
         }
         self.session_metrics.append(metric)
         logger.log_event("LLM_METRIC", metric)
