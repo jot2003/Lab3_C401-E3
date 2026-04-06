@@ -71,10 +71,10 @@ Có thể export bảng từ log hoặc chạy script parse — quan trọng là
 
 ## 5. Trước khi nộp — tick nhanh
 
-- [ ] `report/group_report/GROUP_REPORT_[TEAM].md` đủ section + bảng Chatbot vs Agent + trace fail + trace success  
+- [x] `report/group_report/GROUP_REPORT_[TEAM].md` đủ section + bảng Chatbot vs Agent + trace fail + trace success  
 - [ ] Mỗi người: `report/individual_reports/REPORT_[NAME].md`  
 - [ ] Discord: đã post trace ≥3 bước (team)  
-- [ ] Repo/code có thể chạy được; `.env` không commit (chỉ `.env.example`)  
+- [x] Repo/code có thể chạy được; `.env` không commit (chỉ `.env.example`)  
 - [ ] (Tuỳ yêu cầu GV) Link repo / file zip / nộp trên hệ thống lớp — làm theo hướng dẫn riêng trên Canvas/LMS  
 
 ---

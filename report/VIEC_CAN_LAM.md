@@ -14,23 +14,23 @@
 
 ## B. Tổng hợp số liệu cho báo cáo (Evaluation)
 
-- [ ] Sau khi chạy nhiều lần, xuất CSV từ log:
+- [x] Sau khi chạy nhiều lần, xuất CSV từ log:
   ```bash
   python scripts/summarize_logs.py
   ```
   File tạo trong `report/exports/` (thư mục này **gitignore** — copy bảng vào báo cáo Word/Google Doc nếu cần nộp).
-- [ ] Đọc `llm_metrics.csv`: latency, tokens, **completion_ratio**; gom theo session **agent** vs **chatbot**.
-- [ ] Đọc `sessions_summary.csv`: **steps**, **outcome** (`final_answer` / `max_steps`), **llm_calls**.
+- [x] Đọc `llm_metrics.csv`: latency, tokens, **completion_ratio**; gom theo session **agent** vs **chatbot**.
+- [x] Đọc `sessions_summary.csv`: **steps**, **outcome** (`final_answer` / `max_steps`), **llm_calls**.
 
 ## C. Báo cáo nhóm (`report/group_report/GROUP_REPORT_[TEN].md`)
 
-- [ ] Executive summary + tỷ lệ thành công (số câu test tự định nghĩa).
-- [ ] Kiến trúc ReAct + bảng tool (tiến hóa mô tả / tham số nếu có v2).
-- [ ] **Agent v1 vs v2** (mô tả thay đổi: prompt, parse `Action`, demo/API, retry Gemini, resolve model…).
-- [ ] **Hai trace**: một **thành công**, một **thất bại** (parse / 429 / thiếu key) — trích `logs/` hoặc Discord.
-- [ ] Bảng **Chatbot vs Agent** (đúng/sai hoặc chất lượng câu trả lời + token/latency từ CSV).
+- [x] Executive summary + tỷ lệ thành công (số câu test tự định nghĩa).
+- [x] Kiến trúc ReAct + bảng tool (tiến hóa mô tả / tham số nếu có v2).
+- [x] **Agent v1 vs v2** (mô tả thay đổi: prompt, parse `Action`, demo/API, retry Gemini, resolve model…).
+- [x] **Hai trace**: một **thành công**, một **thất bại** (parse / 429 / thiếu key) — trích `logs/` hoặc Discord.
+- [x] Bảng **Chatbot vs Agent** (đúng/sai hoặc chất lượng câu trả lời + token/latency từ CSV).
 - [ ] Flowchart + insight nhóm.
-- [ ] RCA ngắn (1 case failure).
+- [x] RCA ngắn (1 case failure).
 
 ## D. Discord / lớp
 
@@ -51,4 +51,7 @@
 
 ---
 
-*Cập nhật khi xong: đánh dấu `[x]` và giao Git/ Drive cho nhóm trưởng.*
+Ghi chú hiện trạng:
+- Đã tổng hợp lại số liệu CSV bằng `python scripts/summarize_logs.py` (mới nhất).
+- Báo cáo nhóm đã cập nhật lại phần Telemetry và Success Rate theo dữ liệu mới.
+- Mục Discord và flowchart nhóm cần hoàn tất thủ công trước khi nộp.

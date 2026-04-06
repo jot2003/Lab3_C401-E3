@@ -11,8 +11,8 @@
 Mục tiêu hệ thống là xây dựng trợ lý du lịch dùng ReAct để giải bài toán nhiều bước (thời tiết, vé máy bay, ngân sách), sau đó so sánh hiệu quả với chatbot baseline không dùng tool.
 
 - **Success Rate**:
-  - Agent: 42/43 phiên có kết quả hợp lệ (`final_answer`) ~ 97.7%.
-  - Chatbot: 2/2 phiên có câu trả lời (`chatbot_single_shot`) = 100%.
+  - Agent: 55/56 phiên có kết quả hợp lệ (`final_answer`) ~ 98.2%.
+  - Chatbot: 4/4 phiên có câu trả lời (`chatbot_single_shot`) = 100%.
 - **Key Outcome**: Agent xử lý tốt các truy vấn nhiều bước, hỗ trợ vé khứ hồi/tour nhiều chặng, hiểu ngày tự nhiên và có trích dẫn nguồn theo dữ liệu tool.
 
 ---
@@ -53,11 +53,12 @@ Hệ thống dùng vòng lặp Thought -> Action -> Observation:
 
 Nguồn dữ liệu: `report/exports/*.csv` tổng hợp từ `logs/`.
 
-- **Average Latency (P50)**: ~14,757.0 ms/phiên (agent).
+- **Số phiên đánh giá**: 60 phiên (56 agent, 4 chatbot).
+- **Average Latency (P50)**: ~15,316.5 ms/phiên (agent).
 - **Max Latency (P99)**: phiên chậm nhất trong tập ghi nhận ~82,272 ms.
 - **Average Tokens per Task**:
-  - Agent: ~9,946.8 prompt tokens/phiên.
-  - Chatbot: ~313.5 prompt tokens/phiên.
+  - Agent: ~11,751.2 prompt tokens/phiên.
+  - Chatbot: ~314.2 prompt tokens/phiên.
 - **Total Cost of Test Suite**: dùng `cost_estimate` trong CSV, mức chi phí ước tính tăng theo số vòng lặp và số lần gọi tool của agent.
 
 Nhận xét: chatbot rẻ token hơn do single-shot, trong khi agent tốn tài nguyên hơn nhưng cung cấp được lời giải có chứng cứ từ tool.
@@ -65,6 +66,15 @@ Nhận xét: chatbot rẻ token hơn do single-shot, trong khi agent tốn tài 
 ---
 
 ## 4. Root Cause Analysis (RCA) - Failure Traces
+
+### Case Study (Success Trace): Multi-step weather + flight + budget
+- **Input**: Câu multi-step HAN -> DAD + weather + budget.
+- **Trace tóm tắt**:
+  - `Thought/Action 1`: gọi `get_weather(Da Nang, VN)`.
+  - `Thought/Action 2`: gọi `search_flights(HAN, DAD, 2026-04-15)`.
+  - `Thought/Action 3`: gọi `calculate_travel_budget(...)`.
+  - `Final Answer`: kết luận khả thi ngân sách dựa trên dữ liệu tool.
+- **Kết quả**: Chuỗi suy luận có đủ dữ liệu và dừng đúng ở `final_answer`.
 
 ### Case Study: Parser lỗi tham số tool và định dạng input
 - **Input**: `get_weather(Da Nang, VN)` và `search_flights(origin='SGN', destination='HAN', departure_date='2026-05-10')`
@@ -92,6 +102,39 @@ Nhận xét: chatbot rẻ token hơn do single-shot, trong khi agent tốn tài 
 | :--- | :--- | :--- | :--- |
 | Simple Q | Trả lời nhanh nhưng chung chung | Có tool + citation + observation JSON | **Agent** |
 | Multi-step | Dễ thiếu bước và thiếu căn cứ | Xử lý tuần tự weather/flights/budget có trace | **Agent** |
+
+---
+
+## 5.1 Flowchart & Group Insights
+
+### Flowchart hệ thống (rút gọn cho demo)
+
+```text
+Người dùng nhập câu hỏi
+        |
+        v
+LLM tạo Thought + chọn Action
+        |
+        v
+Gọi đúng 1 tool mỗi bước
+  - get_weather
+  - search_flights / roundtrip / itinerary
+  - calculate_travel_budget
+        |
+        v
+Nhận Observation (JSON)
+        |
+        v
+Nếu đủ dữ liệu -> Final Answer
+Nếu chưa đủ -> lặp Thought/Action tiếp
+```
+
+### Insight nhóm (rút ra sau triển khai)
+
+- **Insight 1 - Trải nghiệm quan trọng hơn “trả lời hay”**: khi có trace từng bước + citation bấm được, người dùng tin hệ thống hơn rõ rệt.
+- **Insight 2 - Tool design quyết định chất lượng agent**: parse tham số và chuẩn hóa input (city/date) ảnh hưởng trực tiếp đến tỉ lệ thành công.
+- **Insight 3 - Nên ưu tiên workflow thực tế**: mặc định one-way, chỉ chuyển roundtrip khi user nói rõ giúp giảm lỗi logic khi demo.
+- **Insight 4 - Dữ liệu thời gian thực cần fallback rõ ràng**: crawl/API có thể trả rỗng theo tuyến/ngày, nên fallback + thông báo minh bạch là bắt buộc.
 
 ---
 
