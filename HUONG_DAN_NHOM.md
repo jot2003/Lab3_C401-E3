@@ -63,6 +63,7 @@ Sửa `.env` và điền key thật:
 | `OPENWEATHER_API_KEY` | [OpenWeatherMap](https://openweathermap.org/api) |
 | `AMADEUS_CLIENT_ID` | [Amadeus Developers](https://developers.amadeus.com/) — app **Test** |
 | `AMADEUS_CLIENT_SECRET` | cặp với Client ID |
+| `DEMO_TRAVEL_APIS` | `1` = thiếu OpenWeather/Amadeus thì dùng dữ liệu mẫu; `0` + đủ key = API thật |
 | `AGENT_MAX_STEPS` | mặc định `8` |
 
 **Không** đưa `.env` lên GitHub.
@@ -70,6 +71,19 @@ Sửa `.env` và điền key thật:
 ---
 
 ## 3. Chạy thử
+
+### Giao diện web (Streamlit)
+
+```bash
+pip install streamlit google-generativeai
+python -m streamlit run app.py
+```
+
+Dùng `python -m streamlit` thay vì gõ `streamlit` trần để trùng với đúng bản Python đã cài package (tránh lỗi `No module named 'google.generativeai'`).
+
+Trình duyệt mở `http://localhost:8501` — chọn Agent hoặc Chatbot, nhập câu hỏi, bấm **Chạy**. Trace ReAct nằm trong phần mở rộng bên dưới kết quả.
+
+### Dòng lệnh (CLI)
 
 Từ thư mục gốc repo:
 

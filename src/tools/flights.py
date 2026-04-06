@@ -5,6 +5,8 @@ from typing import Any, Dict, Optional, Tuple
 
 import requests
 
+from src.tools.demo_fallback import demo_travel_apis_enabled, mock_flights
+
 AMADEUS_TOKEN_URL = "https://test.api.amadeus.com/v1/security/oauth2/token"
 AMADEUS_OFFERS_URL = "https://test.api.amadeus.com/v2/shopping/flight-offers"
 
@@ -50,10 +52,12 @@ def search_flights(origin: str, destination: str, departure_date: str) -> str:
     Sandbox returns sample offers; dates must be in the future per Amadeus rules.
     """
     if not _amadeus_credentials()[0]:
+        if demo_travel_apis_enabled():
+            return mock_flights(origin, destination, departure_date)
         return json.dumps(
             {
                 "error": "Missing AMADEUS_CLIENT_ID / AMADEUS_CLIENT_SECRET",
-                "hint": "https://developers.amadeus.com/ — create an app, use test keys.",
+                "hint": "https://developers.amadeus.com/ (app Test) — hoặc DEMO_TRAVEL_APIS=1 trong .env để demo không cần Amadeus.",
             },
             ensure_ascii=False,
         )

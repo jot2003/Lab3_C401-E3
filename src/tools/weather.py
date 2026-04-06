@@ -4,6 +4,8 @@ from typing import Any, Dict
 
 import requests
 
+from src.tools.demo_fallback import demo_travel_apis_enabled, mock_weather
+
 OPENWEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
 FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
 
@@ -14,10 +16,12 @@ def get_weather(city: str) -> str:
     """
     key = os.getenv("OPENWEATHER_API_KEY", "").strip()
     if not key:
+        if demo_travel_apis_enabled():
+            return mock_weather(city)
         return json.dumps(
             {
                 "error": "Missing OPENWEATHER_API_KEY in .env",
-                "hint": "https://openweathermap.org/api — free tier is enough.",
+                "hint": "Đăng ký free: https://openweathermap.org/api — hoặc bật DEMO_TRAVEL_APIS=1 trong .env để chạy demo không cần key.",
             },
             ensure_ascii=False,
         )

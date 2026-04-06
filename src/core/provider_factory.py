@@ -8,7 +8,7 @@ from src.core.llm_provider import LLMProvider
 def build_llm_from_env() -> LLMProvider:
     load_dotenv()
     provider = os.getenv("DEFAULT_PROVIDER", "google").strip().lower()
-    model = os.getenv("DEFAULT_MODEL", "gemini-1.5-flash").strip()
+    model = os.getenv("DEFAULT_MODEL", "gemini-2.5-flash").strip()
 
     if provider == "google":
         from src.core.gemini_provider import GeminiProvider

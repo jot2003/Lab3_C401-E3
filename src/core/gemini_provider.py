@@ -3,12 +3,16 @@ import time
 import google.generativeai as genai
 from typing import Dict, Any, Optional, Generator
 from src.core.llm_provider import LLMProvider
+from src.core.gemini_model_resolve import resolve_gemini_model_id
+
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, model_name: str = "gemini-1.5-flash", api_key: Optional[str] = None):
+    def __init__(self, model_name: str = "gemini-2.5-flash", api_key: Optional[str] = None):
         super().__init__(model_name, api_key)
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(model_name)
+        resolved = resolve_gemini_model_id(self.api_key or "", model_name)
+        self.model_name = resolved
+        self.model = genai.GenerativeModel(resolved)
 
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
         start_time = time.time()
